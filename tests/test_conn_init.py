@@ -1,32 +1,36 @@
 import unittest
-import socket, time
+import socket
 from threading import Thread
 
 from scscpy.client import SCSCPClient
 
 class TestConnInit(unittest.TestCase):
+    def setUp(self):
+        self.server, client = socket.socketpair()
+        self.client = SCSCPClient(client)
+
     def test_successful(self):
         """ Test a successful connection initiation """
-        
-        server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        server.bind(("localhost", 26133))
-        server.listen(1)
-        
-        def run(server):
-            cs, _ = server.accept()
-            cs.send(b'<?scscp scscp_versions="1.3"?>')
-            cs.recv(100)
-            cs.send(b'<?scscp version="1.3"?>')
-            cs.recv(100)
-        Thread(target=run, args=(server,)).start()
+        self.server.send(b'<?scscp scscp_versions="1.3"?><?scscp version="1.3"?>')
+        self.client.connect()
 
-        client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        client.connect(("localhost", 26133))
-        scscp = SCSCPClient(client)
-
-        scscp.connect()
-        self.assertEqual(scscp.status, SCSCPClient.CONNECTED, "Connected")
-        self.assertEqual(scscp.service_info, {'scscp_versions': b'1.3'}, "Connected")
+        self.assertEqual(self.client.status, SCSCPClient.CONNECTED, "Connected")
+        self.assertEqual(self.client.service_info, {'scscp_versions': b'1.3'}, "Connected")
         
-        scscp.quit()
-        self.assertEqual(scscp.status, SCSCPClient.CLOSED, "Quitted")
+        self.client.quit()
+        self.assertEqual(self.client.status, SCSCPClient.CLOSED, "Quitted")
+
+    def test_msg(self):
+        """ Test a message exchange """
+        self.server.send(b'<?scscp scscp_versions="1.3"?><?scscp version="1.3"?>')
+        self.client.connect()
+        self.server.recv(100)
+        
+        self.client.send("Hello world!")
+
+        msg = self.server.recv(100)
+        self.assertEqual(msg, b"<?scscp start  ?>Hello world!<?scscp end  ?>")
+        
+        self.server.send(msg)
+        msg = self.client.receive()
+        self.assertEqual(msg, b"Hello world!")

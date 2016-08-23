@@ -1,11 +1,14 @@
 import re
 
-PI_regex = re.compile(b"<\?scscp\s+(.{0,4084})?\?>", re.S)
+PI_regex = re.compile(b"<\?scscp\s+(.{0,4084}?)\?>", re.S)
 PI_regex_full = re.compile(b'^<\?scscp(?:\s+(?P<key>\w+))?(?P<attrs>(?:\s+\w+=".*?")*)\s*\?>$')
 PI_regex_attr = re.compile(b'(\w+)="(.*?)"')
 
 class SCSCPError(RuntimeError):
     pass
+class SCSCPCancel(SCSCPError):
+    def __init__(self):
+        super(SCSCPCancel, self).__init__('Server canceled transmission')
 
 class ProcessingInstruction():
     @classmethod
@@ -25,8 +28,8 @@ class ProcessingInstruction():
 
     def __bytes__(self):
         print(self.key)
-        return b'<?scscp %s %s ?>' % (self.key.encode('ascii'),
-                                         b' '.join(b'%s="%s"' % (k.encode('ascii'), v)
+        return b'<?scscp %s %s ?>' % (self.key.encode(),
+                                         b' '.join(b'%s="%s"' % (k.encode(), v)
                                                       for k,v in self.attrs.items()))
 
     def __str__(self):
