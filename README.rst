@@ -1,2 +1,4 @@
-# scscpy
+SCSCP
+=====
+
 SCSCP module for Python

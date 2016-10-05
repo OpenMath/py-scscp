@@ -1,26 +1,21 @@
 import re
-
-PI_regex = re.compile(b"<\?scscp\s+(.{0,4084}?)\?>", re.S)
-PI_regex_full = re.compile(b'^<\?scscp(?:\s+(?P<key>\w+))?(?P<attrs>(?:\s+\w+=".*?")*)\s*\?>$')
-PI_regex_attr = re.compile(b'(\w+)="(.*?)"')
-
-class SCSCPError(RuntimeError):
-    pass
-class SCSCPCancel(SCSCPError):
-    def __init__(self):
-        super(SCSCPCancel, self).__init__('Server canceled transmission')
+from .scscp import SCSCPConnectionError
 
 class ProcessingInstruction():
+    PI_regex = re.compile(b"<\?scscp\s+(.{0,4084}?)\?>", re.S)
+    PI_regex_full = re.compile(b'^<\?scscp(?:\s+(?P<key>\w+))?(?P<attrs>(?:\s+\w+=".*?")*)\s*\?>$')
+    PI_regex_attr = re.compile(b'(\w+)="(.*?)"')
+
     @classmethod
     def parse(cls, bytes):
-        match = PI_regex_full.match(bytes)
+        match = cls.PI_regex_full.match(bytes)
         if match:
             key = (match.group('key') or b'').decode('ascii')
             attrs = { k.decode('ascii'): v
-                          for k, v in PI_regex_attr.findall(match.group('attrs')) }
+                          for k, v in cls.PI_regex_attr.findall(match.group('attrs')) }
             return cls(key, **attrs)
         else:
-            raise SCSCPError("Bad SCSCP processing instruction %s." % bytes)
+            raise SCSCPConnectionError("Bad SCSCP processing instruction %s." % bytes)
 
     def __init__(self, key='', **attrs):
         self.key = key

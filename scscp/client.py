@@ -1,6 +1,7 @@
 import logging
 from pexpect import fdpexpect, TIMEOUT, EOF
-from .scscp import ProcessingInstruction as PI, PI_regex, SCSCPError
+from .scscp import SCSCPConnectionError, SCSCPCancel
+from .processing_instruction import ProcessingInstruction as PI
 
 class SCSCPClient():
     """
@@ -30,7 +31,7 @@ class SCSCPClient():
     def _get_next_PI(self, expect=None, timeout=-1):
         while True:
             try:
-                self.stream.expect(PI_regex, timeout=timeout)
+                self.stream.expect(PI.PI_regex, timeout=timeout)
             except TIMEOUT:
                 self.quit()
                 raise TimeoutError("Server took to long to respond.")
@@ -39,7 +40,7 @@ class SCSCPClient():
 
             try:
                 pi = PI.parse(self.stream.after)
-            except SCSCPError:
+            except SCSCPConnectionError:
                 self.quit()
                 raise
             self.log.debug("Received PI: %s" % pi)
@@ -47,12 +48,12 @@ class SCSCPClient():
             if expect is not None and pi.key not in expect:
                 if pi.key == 'quit':
                     self.quit()
-                    raise SCSCPError("Server closed session (reason: %s)." % pi.attrs.get('reason'))
+                    raise SCSCPConnectionError("Server closed session (reason: %s)." % pi.attrs.get('reason'), pi)
                 if pi.key == 'info':
                     self.log.info("SCSCP info: %s " % pi.attrs.get('info'))
                     continue
                 else:
-                    raise SCSCPError("Server sent unexpected message: %s" % pi.key)
+                    raise SCSCPConnectionError("Server sent unexpected message: %s" % pi.key, pi)
             else:
                 return pi
 
@@ -70,7 +71,7 @@ class SCSCPClient():
         if ('scscp_versions' not in pi.attrs
                 or b'1.3' not in pi.attrs['scscp_versions'].split()):
             self.quit()
-            raise SCSCPError("Unsupported SCSCP versions %s." % pi.attrs.get('scscp_versions'))
+            raise SCSCPConnectionError("Unsupported SCSCP versions %s." % pi.attrs.get('scscp_versions'), pi)
         
         self.service_info = pi.attrs
 
@@ -79,7 +80,7 @@ class SCSCPClient():
         pi = self._get_next_PI([''])
         if pi.attrs.get('version') != b'1.3':
             self.quit()
-            raise SCSCPError("Server sent unexpected response.")
+            raise SCSCPConnectionError("Server sent unexpected response.", pi)
 
         self.status = self.CONNECTED
 
@@ -103,7 +104,7 @@ class SCSCPClient():
         while True:
             pi = self._get_next_PI(['end', 'cancel', 'info'], timeout=timeout)
             if pi.key == 'cancel':
-                raise SCSCPCancel()
+                raise SCSCPCancel('Server canceled transmission')
             
             msg += self.stream.before
             if pi.key == 'info':
@@ -132,4 +133,3 @@ class SCSCPClient():
     def terminate(self, id):
         """ Send SCSCP terminate message """
         self._send_PI('terminate', call_id=id)
-        

@@ -2,7 +2,7 @@ import unittest
 import socket
 from threading import Thread
 
-from scscpy.client import SCSCPClient
+from scscp.client import SCSCPClient
 
 class TestConnInit(unittest.TestCase):
     def setUp(self):
