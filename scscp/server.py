@@ -1,4 +1,4 @@
-from .client import SCSCPPeer
+from .client import SCSCPPeer, _assert_status, INITIALIZED, CONNECTED
 
 class SCSCPServerBase(SCSCPPeer):
     """
@@ -8,7 +8,7 @@ class SCSCPServerBase(SCSCPPeer):
     def __init__(self, socket, timeout=30, logger=None):
         super(SCSCPServerBase, self).__init__(socket, timeout, logger, me="Server", you="Client")
 
-    @SCSCPPeer._assert_status(SCSCPPeer.INITIALIZED, "Session already opened.")
+    @_assert_status(INITIALIZED, "Session already opened.")
     def accept(self):
         """ SCSCP handshake """
         self._send_PI(scscp_versions=b'1.3')
@@ -20,4 +20,4 @@ class SCSCPServerBase(SCSCPPeer):
         
         self._send_PI(version=b'1.3')
 
-        self.status = self.CONNECTED
+        self.status = CONNECTED

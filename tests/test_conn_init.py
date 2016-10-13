@@ -2,6 +2,7 @@ import unittest
 import socket
 from threading import Thread
 
+from scscp import client
 from scscp.client import SCSCPClientBase
 from scscp.server import SCSCPServerBase
 
@@ -18,11 +19,11 @@ class TestConnInit(unittest.TestCase):
         self.client.connect()
         t.join()
 
-        self.assertEqual(self.client.status, SCSCPClientBase.CONNECTED, "Connected")
+        self.assertEqual(self.client.status, client.CONNECTED, "Connected")
         self.assertEqual(self.client.service_info, {'scscp_versions': b'1.3'}, "Connected")
         
         self.client.quit()
-        self.assertEqual(self.client.status, SCSCPClientBase.CLOSED, "Quitted")
+        self.assertEqual(self.client.status, client.CLOSED, "Quitted")
 
     def test_msg(self):
         """ Test a message exchange """
@@ -41,4 +42,4 @@ class TestConnInit(unittest.TestCase):
         self.assertEqual(msg, b"Hello world!")
 
         self.server.quit()
-        self.assertEqual(self.server.status, SCSCPClientBase.CLOSED, "Quitted")
+        self.assertEqual(self.server.status, client.CLOSED, "Quitted")

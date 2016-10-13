@@ -6,31 +6,33 @@ from . import scscp
 from .scscp import SCSCPConnectionError, SCSCPCancel, SCSCPProcedureMessage
 from .processing_instruction import ProcessingInstruction as PI
 
-class SCSCPPeer():
+    
+INITIALIZED=0
+CONNECTED=1
+CLOSED=2
+
+def _assert_status(status, msg=None):
+    def wrap(fun):
+        def wrapper(self, *args, **kwds):
+            if self.status != status:
+                raise RuntimeError(msg or "Bad status %d." % self.status)
+            return fun(self, *args, **kwds)
+        return wrapper
+    return wrap
+_assert_connected = _assert_status(CONNECTED, "Client not connected.")
+
+
+class SCSCPPeer(object):
     """
     Base class for SCSCP client and server
     """
     
-    INITIALIZED=0
-    CONNECTED=1
-    CLOSED=2
-    
     def __init__(self, socket, timeout=30, logger=None, me='Client', you='Server'):
         self.socket = socket
-        self.stream = fdpexpect.fdspawn(socket.makefile(), timeout=timeout)
-        self.status = self.INITIALIZED
+        self.stream = fdpexpect.fdspawn(socket, timeout=timeout)
+        self.status = INITIALIZED
         self.log = logger or logging.getLogger(__name__)
         self.me, self.you = me, you
-
-    def _assert_status(status, msg=None):
-        def wrap(fun):
-            def wrapper(self, *args, **kwds):
-                if self.status != status:
-                    raise RuntimeError(msg or "Bad status %d." % self.status)
-                return fun(self, *args, **kwds)
-            return wrapper
-        return wrap
-    _assert_connected = _assert_status(CONNECTED, "Client not connected.")
 
     def _get_next_PI(self, expect=None, timeout=-1):
         while True:
@@ -105,7 +107,7 @@ class SCSCPPeer():
         except ConnectionError:
             pass
         finally:
-            self.status = self.CLOSED
+            self.status = CLOSED
 
     @_assert_connected
     def info(self, info):
@@ -121,7 +123,7 @@ class SCSCPClientBase(SCSCPPeer):
     def __init__(self, socket, timeout=30, logger=None):
         super(SCSCPClientBase, self).__init__(socket, timeout, logger, me="Client", you="Server")
 
-    @SCSCPPeer._assert_status(SCSCPPeer.INITIALIZED, "Session already opened.")
+    @_assert_status(INITIALIZED, "Session already opened.")
     def connect(self):
         """ SCSCP handshake """
         
@@ -140,9 +142,9 @@ class SCSCPClientBase(SCSCPPeer):
             self.quit()
             raise SCSCPConnectionError("Server sent unexpected response.", pi)
 
-        self.status = self.CONNECTED
+        self.status = CONNECTED
 
-    @SCSCPPeer._assert_connected
+    @_assert_connected
     def terminate(self, id):
         """ Send SCSCP terminate message """
         self._send_PI('terminate', call_id=id)

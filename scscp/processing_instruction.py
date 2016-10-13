@@ -22,13 +22,14 @@ class ProcessingInstruction():
         self.attrs = attrs
 
     def __bytes__(self):
-        print(self.key)
         return b'<?scscp %s %s ?>' % (self.key.encode(),
                                          b' '.join(b'%s="%s"' % (k.encode(), v)
                                                       for k,v in self.attrs.items()))
 
     def __str__(self):
-        return bytes(self).decode('ascii')
+        return '<?scscp %s %s ?>' % (self.key.encode(),
+                                         ' '.join('%s="%s"' % (k.encode(), v)
+                                                      for k,v in self.attrs.items()))
     
     def __repr__(self):
         return 'ProcessingInstruction: %s' % self
