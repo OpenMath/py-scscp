@@ -16,7 +16,7 @@ class TestConnInit(unittest.TestCase):
                                  id=None, cdbase=None))
 
     def test_procedure(self):
-        self.assertEqual(scscp.procedure_call(scscp.get_service_description(), id='myid'),
+        self.assertEqual(scscp.SCSCPProcedureMessage.call(scscp.get_service_description(), id='myid').om(),
                              OMObject( OMAttribution( OMAttributionPairs(
                                  [(OMSymbol('call_id', 'scscp1',), OMString('myid'))]),
                                  OMApplication(

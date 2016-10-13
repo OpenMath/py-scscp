@@ -10,6 +10,10 @@ class SCSCPConnectionError(SCSCPError):
         self.pi = pi
 class SCSCPCancel(SCSCPError):
     pass
+class SCSCPMessageError(SCSCPError):
+    def __init__(self, msg, om=None):
+        super(SCSCPMessageError, self).__init__(msg)
+        self.om = om
 
 ### SCSCP1 content dictionary
 
@@ -36,42 +40,74 @@ errors = {
     'system_specific' : True,
 }
 
-def call_id(id=None):
-    return (om.OMSymbol('call_id', cd='scscp1'), om.OMString(str(id or uuid.uuid1())))
-            
-def _procedure(type, data, id=None, params=None):
-    return om.OMObject(
-        om.OMAttribution(
-            om.OMAttributionPairs([call_id(id)] + (params or [])),
-            om.OMApplication(
-                om.OMSymbol(type, cd='scscp1'),
-                [data]
+class SCSCPProcedureMessage():
+    def __init__(self, type, data, id=None, params=None):
+        self.type = type
+        self.id = str(id or uuid.uuid1())
+        self.params = [(om.OMSymbol('call_id', cd='scscp1'), om.OMString(self.id))] + (params or [])
+        self.data = data
+
+    @classmethod
+    def call(cls, data, id=None, **opts):
+        opts = [(om.OMSymbol('option_' + k, cd='scscp1'),
+                    options['option_' + k](v))
+                    for k, v in opts.items() if v is not None and v is not False]
+        return cls('procedure_call', data, id, opts)
+
+    @classmethod
+    def _w_info(cls, type, id, data, **info):
+        info = [(om.OMSymbol('info_' + k, cd='scscp1'),
+                    infos['info_' + k](v))
+                    for k, v in info.items() if v is not None]
+        return cls(type, data, id, info)
+
+    @classmethod
+    def completed(cls, id, data, **info):
+        return cls._w_info('procedure_completed', id, data, **info)
+
+    @classmethod
+    def terminated(cls, id, error, msg=None, **info):
+        if not isinstance(error, om.OMError):
+            if errors['error_' + error] and msg is None:
+                raise RuntimeError('Must give an error message')
+            error = om.OMError(om.OMSymbol('error_' + error, cd='scscp1'), om.OMString(msg))
+        return cls._w_info('procedure_terminated', id, error, **info)
+
+    def om(self):
+        return om.OMObject(
+            om.OMAttribution(
+                om.OMAttributionPairs(self.params),
+                om.OMApplication(
+                    om.OMSymbol(self.type, cd='scscp1'),
+                    [self.data]
+                )
             )
         )
-    )
+        
+    @classmethod
+    def from_om(cls, obj):
+        if not (isinstance(obj, om.OMObject)
+                and isinstance(obj.omel, om.OMAttribution)):
+            raise SCSCPMessageError('Bad SCSCP procedure message.', obj)
+        params = obj.omel.pairs
+        
+        try:
+            id = next(p for p in params if p[0].name == 'call_id' and p[0].cd == 'scscp1')
+        except KeyError:
+            raise SCSCPMessageError('SCSCP procedure message does not contain id.', obj)
+        if not isinstance(id[1], om.OMString):
+            raise SCSCPMessageError('Bad SCSCP procedure message.', obj)
+        id = id[1].string
 
-def procedure_call(data, id=None, **opts):
-    opts = [(om.OMSymbol('option_' + k, cd='scscp1'),
-                 options['option_' + k](v))
-                for k, v in opts.items()]
-    return _procedure('procedure_call', data, id, opts)
+        if not (isinstance(obj.omel.obj, om.OMApplication)
+                    and obj.omel.obj.elem.cd == 'scscp1'
+                    and len(obj.omel.obj.arguments) == 1):
+            raise SCSCPMessageError('Bad SCSCP procedure message.', obj)
+        type = obj.omel.obj.elem.name
+        data = obj.omel.obj.arguments[0]
 
-def _procedure_end(type, id, data, **info):
-    info = [(om.OMSymbol('info_' + k, cd='scscp1'),
-                 infos['info_' + k](v))
-                for k, v in info.items()]
-    return _procedure(type, data, id, info)
-
-def procedure_completed(id, data, **info):
-    return _procedure_end('procedure_completed', id, data, **info)
-
-def procedure_terminated(id, error, msg=None, **info):
-    if not isinstance(error, om.OMError):
-        if errors['error_' + error] and msg is None:
-            raise RuntimeError('Must give an error message')
-        error = om.OMError(om.OMSymbol('error_' + error, cd='scscp1'), om.OMString(msg))
-    return  _procedure_end('procedure_terminated', id, error, **info)
-
+        return cls(type, data, id, params)
+        
 
 ### SCSCP2 content dictionary
 

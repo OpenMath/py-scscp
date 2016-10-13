@@ -1,11 +1,13 @@
 import logging
 from pexpect import fdpexpect, TIMEOUT, EOF
-from .scscp import SCSCPConnectionError, SCSCPCancel
+from openmath import encoder, decoder
+from . import scscp
+from .scscp import SCSCPConnectionError, SCSCPCancel, SCSCPProcedureMessage
 from .processing_instruction import ProcessingInstruction as PI
 
-class SCSCPClient():
+class SCSCPClientBase():
     """
-    A simple SCSCP synchronous client.
+    A simple SCSCP synchronous client, with no understanding of OpenMath.
     """
     
     INITIALIZED=0
@@ -34,7 +36,7 @@ class SCSCPClient():
                 self.stream.expect(PI.PI_regex, timeout=timeout)
             except TIMEOUT:
                 self.quit()
-                raise TimeoutError("Server took to long to respond.")
+                raise TimeoutError("Server took too long to respond.")
             except EOF:
                 raise ConnectionResetError("Server closed unexpectedly.")
 
@@ -133,3 +135,29 @@ class SCSCPClient():
     def terminate(self, id):
         """ Send SCSCP terminate message """
         self._send_PI('terminate', call_id=id)
+
+
+class SCSCPClient(SCSCPClientBase):
+    """
+    A simple SCSCP synchronous client.
+    """
+    def receive(self, timeout=-1):
+        msg = super(SCSCPClient, self).receive(timeout)
+        return decoder.decode_stream(msg)
+        
+    def send(self, om):
+        return super(SCSCPClient, self).send(encoder.encodeStream(om))
+
+    def call(self, data, cookie=False, **opts):
+        if cookie:
+            opts['return_cookie'] = True
+        elif cookie is None:
+            opts['return_nothing'] = True
+        else:
+            opts['return_object'] = True
+        call = SCSCPProcedureMessage.call(data, id=None, **opts)
+        self.send(call.om)
+        return call.id
+
+    def wait(self, id, timeout=-1):
+        return SCSCPProcedureMessage.from_om(self.receive(timeout))

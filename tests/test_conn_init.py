@@ -2,23 +2,23 @@ import unittest
 import socket
 from threading import Thread
 
-from scscp.client import SCSCPClient
+from scscp.client import SCSCPClientBase
 
 class TestConnInit(unittest.TestCase):
     def setUp(self):
         self.server, client = socket.socketpair()
-        self.client = SCSCPClient(client)
+        self.client = SCSCPClientBase(client)
 
     def test_successful(self):
         """ Test a successful connection initiation """
         self.server.send(b'<?scscp scscp_versions="1.3"?><?scscp version="1.3"?>')
         self.client.connect()
 
-        self.assertEqual(self.client.status, SCSCPClient.CONNECTED, "Connected")
+        self.assertEqual(self.client.status, SCSCPClientBase.CONNECTED, "Connected")
         self.assertEqual(self.client.service_info, {'scscp_versions': b'1.3'}, "Connected")
         
         self.client.quit()
-        self.assertEqual(self.client.status, SCSCPClient.CLOSED, "Quitted")
+        self.assertEqual(self.client.status, SCSCPClientBase.CLOSED, "Quitted")
 
     def test_msg(self):
         """ Test a message exchange """
