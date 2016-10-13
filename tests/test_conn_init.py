@@ -2,35 +2,43 @@ import unittest
 import socket
 from threading import Thread
 
-from scscp.client import SCSCPClient
+from scscp.client import SCSCPClientBase
+from scscp.server import SCSCPServerBase
 
 class TestConnInit(unittest.TestCase):
     def setUp(self):
-        self.server, client = socket.socketpair()
-        self.client = SCSCPClient(client)
+        server, client = socket.socketpair()
+        self.client = SCSCPClientBase(client)
+        self.server = SCSCPServerBase(server)
 
     def test_successful(self):
         """ Test a successful connection initiation """
-        self.server.send(b'<?scscp scscp_versions="1.3"?><?scscp version="1.3"?>')
+        t = Thread(target=self.server.accept)
+        t.start()
         self.client.connect()
+        t.join()
 
-        self.assertEqual(self.client.status, SCSCPClient.CONNECTED, "Connected")
+        self.assertEqual(self.client.status, SCSCPClientBase.CONNECTED, "Connected")
         self.assertEqual(self.client.service_info, {'scscp_versions': b'1.3'}, "Connected")
         
         self.client.quit()
-        self.assertEqual(self.client.status, SCSCPClient.CLOSED, "Quitted")
+        self.assertEqual(self.client.status, SCSCPClientBase.CLOSED, "Quitted")
 
     def test_msg(self):
         """ Test a message exchange """
-        self.server.send(b'<?scscp scscp_versions="1.3"?><?scscp version="1.3"?>')
+        t = Thread(target=self.server.accept)
+        t.start()
         self.client.connect()
-        self.server.recv(100)
+        t.join()
         
-        self.client.send("Hello world!")
+        self.client.send(b"Hello world!")
 
-        msg = self.server.recv(100)
-        self.assertEqual(msg, b"<?scscp start  ?>Hello world!<?scscp end  ?>")
+        msg = self.server.receive()
+        self.assertEqual(msg, b"Hello world!")
         
         self.server.send(msg)
         msg = self.client.receive()
         self.assertEqual(msg, b"Hello world!")
+
+        self.server.quit()
+        self.assertEqual(self.server.status, SCSCPClientBase.CLOSED, "Quitted")
