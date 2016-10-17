@@ -1,11 +1,13 @@
 import logging
-import io
 from pexpect import fdpexpect, TIMEOUT, EOF
 from openmath import encoder, decoder
 from . import scscp
-from .scscp import SCSCPConnectionError, SCSCPCancel, SCSCPProcedureMessage
+from .scscp import SCSCPConnectionError, SCSCPQuit, SCSCPCancel, SCSCPProcedureMessage
 from .processing_instruction import ProcessingInstruction as PI
 
+class TimeoutError(RuntimeError):
+    """ Client/Server timeout """
+    pass
     
 INITIALIZED=0
 CONNECTED=1
@@ -19,7 +21,7 @@ def _assert_status(status, msg=None):
             return fun(self, *args, **kwds)
         return wrapper
     return wrap
-_assert_connected = _assert_status(CONNECTED, "Client not connected.")
+_assert_connected = _assert_status(CONNECTED, "Not connected.")
 
 
 class SCSCPPeer(object):
@@ -39,7 +41,6 @@ class SCSCPPeer(object):
             try:
                 self.stream.expect(PI.PI_regex, timeout=timeout)
             except TIMEOUT:
-                self.quit()
                 raise TimeoutError("%s took too long to respond." % self.you)
             except EOF:
                 raise ConnectionResetError("%s closed unexpectedly." % self.you)
@@ -54,9 +55,10 @@ class SCSCPPeer(object):
             if expect is not None and pi.key not in expect:
                 if pi.key == 'quit':
                     self.quit()
-                    raise SCSCPConnectionError("%s closed session (reason: %s)." % (self.you, pi.attrs.get('reason')), pi)
-                if pi.key == 'info':
-                    self.log.info("SCSCP info: %s " % pi.attrs.get('info'))
+                    reason = pi.attrs.get('reason')
+                    raise SCSCPQuit("%s closed session (reason: %s)." % (self.you, reason), reason)
+                if pi.key == '' and 'info' in pi.attrs:
+                    self.log.info("SCSCP info: %s" % pi.attrs.get('info').decode())
                     continue
                 else:
                     raise SCSCPConnectionError("%s sent unexpected message: %s" % (self.you, pi.key), pi)
@@ -87,15 +89,12 @@ class SCSCPPeer(object):
         msg = b""
         pi = self._get_next_PI(['start'], timeout=timeout)
         while True:
-            pi = self._get_next_PI(['end', 'cancel', 'info'], timeout=timeout)
+            pi = self._get_next_PI(['end', 'cancel'], timeout=timeout)
             if pi.key == 'cancel':
                 raise SCSCPCancel('%s canceled transmission' % self.you)
             
             msg += self.stream.before
-            if pi.key == 'info':
-                continue
-            else:
-                return msg
+            return msg
 
     @_assert_connected
     def quit(self, reason=None):
@@ -115,6 +114,19 @@ class SCSCPPeer(object):
         self._send_PI(info=info)
 
 
+class SCSCPPeerOM(SCSCPPeer):
+    """
+    Base class for SCSCP client and server understanding OpenMath
+    """
+    
+    def receive(self, timeout=-1):
+        msg = super(SCSCPPeerOM, self).receive(timeout)
+        return decoder.decode_bytes(msg)
+        
+    def send(self, om):
+        return super(SCSCPPeerOM, self).send(encoder.encode_bytes(om))
+
+    
 class SCSCPClientBase(SCSCPPeer):
     """
     A simple SCSCP synchronous client, with no understanding of OpenMath.
@@ -124,10 +136,10 @@ class SCSCPClientBase(SCSCPPeer):
         super(SCSCPClientBase, self).__init__(socket, timeout, logger, me="Client", you="Server")
 
     @_assert_status(INITIALIZED, "Session already opened.")
-    def connect(self):
+    def connect(self, timeout=None):
         """ SCSCP handshake """
         
-        pi = self._get_next_PI([''])
+        pi = self._get_next_PI([''], timeout=timeout)
         if ('scscp_versions' not in pi.attrs
                 or b'1.3' not in pi.attrs['scscp_versions'].split()):
             self.quit()
@@ -137,7 +149,7 @@ class SCSCPClientBase(SCSCPPeer):
 
         self._send_PI(version=b'1.3')
 
-        pi = self._get_next_PI([''])
+        pi = self._get_next_PI([''], timeout=timeout)
         if pi.attrs.get('version') != b'1.3':
             self.quit()
             raise SCSCPConnectionError("Server sent unexpected response.", pi)
@@ -150,17 +162,10 @@ class SCSCPClientBase(SCSCPPeer):
         self._send_PI('terminate', call_id=id)
 
 
-class SCSCPClient(SCSCPClientBase):
+class SCSCPClient(SCSCPClientBase, SCSCPPeerOM):
     """
     A simple SCSCP synchronous client.
     """
-    def receive(self, timeout=-1):
-        msg = super(SCSCPClient, self).receive(timeout)
-        return decoder.decode_stream(io.BytesIO(msg))
-        
-    def send(self, om):
-        return super(SCSCPClient, self).send(encoder.encode_stream(om))
-
     def wait(self, timeout=-1):
         return SCSCPProcedureMessage.from_om(self.receive(timeout))
 

@@ -27,8 +27,8 @@ class ProcessingInstruction():
                                                       for k,v in self.attrs.items()))
 
     def __str__(self):
-        return '<?scscp %s %s ?>' % (self.key.encode(),
-                                         ' '.join('%s="%s"' % (k.encode(), v)
+        return '<?scscp %s %s ?>' % (self.key,
+                                         ' '.join('%s="%s"' % (k, v.decode())
                                                       for k,v in self.attrs.items()))
     
     def __repr__(self):

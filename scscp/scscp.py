@@ -10,14 +10,18 @@ class SCSCPConnectionError(SCSCPError):
         self.pi = pi
 class SCSCPCancel(SCSCPError):
     pass
-class SCSCPMessageError(SCSCPError):
+class SCSCPQuit(SCSCPError):
+    def __init__(self, msg, reason=''):
+        super(SCSCPQuit, self).__init__(msg)
+        self.reason = reason
+class SCSCPProtocolError(SCSCPError):
     def __init__(self, msg, om=None):
-        super(SCSCPMessageError, self).__init__(msg)
+        super(SCSCPProtocolError, self).__init__(msg)
         self.om = om
 
 ### SCSCP1 content dictionary
 
-class SCSCPProcedureMessage():
+class SCSCPProcedureMessage(object):
     options = {
         'debuglevel'     : om.OMInteger,
         'max_memory'     : om.OMInteger,
@@ -70,7 +74,7 @@ class SCSCPProcedureMessage():
         if not isinstance(error, om.OMError):
             if cls.errors[error] and msg is None:
                 raise RuntimeError('Must give an error message')
-            error = om.OMError(om.OMSymbol('error_' + error, cd='scscp1'), om.OMString(msg))
+            error = om.OMError(om.OMSymbol('error_' + error, cd='scscp1'), [om.OMString(msg)])
         return cls._w_info('procedure_terminated', id, error, **info)
 
     def __repr__(self):
@@ -96,23 +100,23 @@ class SCSCPProcedureMessage():
     def from_om(cls, obj):
         if not (isinstance(obj, om.OMObject)
                 and isinstance(obj.omel, om.OMAttribution)):
-            raise SCSCPMessageError('Bad SCSCP procedure message.', obj)
+            raise SCSCPProtocolError('Bad SCSCP procedure message.', obj)
         params = obj.omel.pairs.pairs
 
         try:
             index, id = next((i,p) for i,p in enumerate(params)
                                  if p[0].name == 'call_id' and p[0].cd == 'scscp1')
         except StopIteration:
-            raise SCSCPMessageError('SCSCP procedure message does not contain id.', obj)
+            raise SCSCPProtocolError('SCSCP procedure message does not contain id.', obj)
         if not isinstance(id[1], om.OMString):
-            raise SCSCPMessageError('Bad SCSCP procedure message.', obj)
+            raise SCSCPProtocolError('Bad SCSCP procedure message.', obj)
         params.pop(index)
         id = id[1].string
 
         if not (isinstance(obj.omel.obj, om.OMApplication)
                     and obj.omel.obj.elem.cd == 'scscp1'
                     and len(obj.omel.obj.arguments) == 1):
-            raise SCSCPMessageError('Bad SCSCP procedure message.', obj)
+            raise SCSCPProtocolError('Bad SCSCP procedure message.', obj)
         type = obj.omel.obj.elem.name
         data = obj.omel.obj.arguments[0]
 
@@ -183,4 +187,4 @@ def service_description(*desc):
     return _apply('service_description', [om.OMString(d) for d in desc])
 
 def no_such_transient_cd(cd):
-    return om.OMError(om.OMSymbol('no_such_transient_cd', cd='scscp2'), om.OMString(cd))
+    return om.OMError(om.OMSymbol('no_such_transient_cd', cd='scscp2'), [om.OMString(cd)])

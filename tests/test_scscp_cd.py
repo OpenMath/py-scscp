@@ -2,7 +2,7 @@ import unittest
 from scscp import scscp
 from openmath.openmath import *
 
-class TestConnInit(unittest.TestCase):
+class TestSCSCPCD(unittest.TestCase):
     def test_service_description(self):
         self.assertEqual(scscp.get_service_description(),
                              OMApplication(

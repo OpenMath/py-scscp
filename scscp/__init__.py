@@ -1,3 +1,4 @@
-__all__ = ["client"]
+__all__ = ["cli", "client", "scscp", "server"]
 
-from .client import SCSCPClient
+from .cli import SCSCPCLI
+from .scscp import SCSCPError, SCSCPConnectionError, SCSCPCancel, SCSCPQuit, SCSCPProtocolError

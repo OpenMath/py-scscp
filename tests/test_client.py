@@ -1,16 +1,15 @@
 import unittest
 import socket
 from threading import Thread
-import io
+import openmath.openmath as om
+from openmath.encoder import encode_bytes
+from openmath.decoder import decode_bytes
 
 from scscp.client import SCSCPClient
 from scscp.server import SCSCPServerBase
 from scscp import scscp
-import openmath.openmath as om
-from openmath.encoder import encode_stream
-from openmath.decoder import decode_stream
 
-class TestConnInit(unittest.TestCase):
+class TestClient(unittest.TestCase):
     def setUp(self):
         server, client = socket.socketpair()
         self.client = SCSCPClient(client)
@@ -30,7 +29,7 @@ class TestConnInit(unittest.TestCase):
         self.assertEqual(call.params, [(om.OMSymbol('option_return_object', 'scscp1'), om.OMString(True))])
         self.assertEqual(call.data, om.OMApplication(om.OMSymbol('get_allowed_heads', 'scscp2'), []))
 
-        msg = decode_stream(io.BytesIO(self.server.receive()))
+        msg = decode_bytes(self.server.receive())
         self.assertEqual(msg, om.OMObject(om.OMAttribution(
             om.OMAttributionPairs([
                 (om.OMSymbol('call_id', 'scscp1'), om.OMString(call.id)),
@@ -41,7 +40,7 @@ class TestConnInit(unittest.TestCase):
         ), version='2.0'))
 
         comp = scscp.SCSCPProcedureMessage.completed(call.id, scscp.symbol_set())
-        self.server.send(encode_stream(comp.om()))
+        self.server.send(encode_bytes(comp.om()))
 
         resp = self.client.wait()
         self.assertEqual(resp.type, "procedure_completed")
