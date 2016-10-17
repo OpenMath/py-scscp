@@ -3,17 +3,13 @@ try:
     import socketserver
 except:
     import SocketServer as socketserver
-import logging, sys
-from threading import Thread, Event
+import logging
 from openmath import openmath as om, convert as conv
-import math
 
 from scscp.client import TimeoutError, CONNECTED
 from scscp.server import SCSCPServer
 from scscp.scscp import SCSCPQuit, SCSCPProtocolError
 from scscp import scscp
-
-TIMEOUT=1
 
 # Supported functions
 CD_SCSCP2 = ['get_service_description', 'get_allowed_heads', 'is_allowed_head']
@@ -31,7 +27,7 @@ class SCSCPRequestHandler(socketserver.BaseRequestHandler):
     def setup(self):
         self.server.log.info("New connection from %s:%d" % self.client_address)
         self.log = self.server.log.getChild(self.client_address[0])
-        self.scscp = SCSCPServer(self.request, timeout=TIMEOUT, logger=self.log)
+        self.scscp = SCSCPServer(self.request, logger=self.log)
         
     def handle(self):
         self.scscp.accept()
@@ -102,12 +98,10 @@ class Server(socketserver.ThreadingMixIn, socketserver.TCPServer, object):
     def __init__(self, host='localhost', port=26133,
                      logger=None, description='Demo SCSCP server'):
         super(Server, self).__init__((host, port), SCSCPRequestHandler)
-        #self.socket.settimeout(TIMEOUT)
         self.log = logger or logging.getLogger(__name__)
         self.description = description
         
 if __name__ == '__main__':
-    import os
     logging.basicConfig(level=logging.DEBUG)
     logger = logging.getLogger('demo_server')
     srv = Server(logger=logger)

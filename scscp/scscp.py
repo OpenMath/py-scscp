@@ -1,6 +1,5 @@
 import uuid
 import openmath.openmath as om
-import itertools
 
 class SCSCPError(RuntimeError):
     pass

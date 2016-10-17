@@ -22,7 +22,6 @@ class SCSCPCLI(SCSCPClient):
         def __call__(self, data, cookie=False, **opts):
             res = self._cli._call_wait(om.OMApplication(self._om, map(_conv_if_py, data)),
                                            cookie, **opts)
-            print(res.data)
             if res.type == 'procedure_completed':
                 try:
                     return convert.to_python(res.data)
@@ -68,11 +67,14 @@ class SCSCPCLI(SCSCPClient):
             return cd in self.__dict__
             
     
-    def __init__(self, host, port=26133):
+    def __init__(self, host, port=26133, populate=True):
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.connect((host, port))
         super(SCSCPCLI, self).__init__(s)
         self.heads = self.Heads(self)
+        self.connect()
+        if populate:
+            self.populate_heads()
 
     def _call_wait(self, data, cookie=False, **opts):
         call = self.call(data, cookie, **opts)

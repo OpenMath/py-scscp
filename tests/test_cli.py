@@ -1,8 +1,6 @@
 import unittest
-import socket, time, sys
+import time, sys
 from threading import Thread
-
-from openmath.convert import *
 
 from scscp.cli import SCSCPCLI
 from demo_server import Server
@@ -13,8 +11,7 @@ class TestCli(unittest.TestCase):
         self.server_t = Thread(target=self.server.serve_forever)
         self.server_t.daemon = True
         self.server_t.start()
-        self.client = SCSCPCLI('localhost')
-        self.client.connect()
+        self.client = SCSCPCLI('localhost', populate=False)
 
     def tearDown(self):
         self.client.quit()
@@ -44,7 +41,6 @@ class TestCli(unittest.TestCase):
 
     def test_two_clients(self):
         client = SCSCPCLI('localhost')
-        client.connect()
         client.quit()
         self.assertEqual(client.status, 2)
 
