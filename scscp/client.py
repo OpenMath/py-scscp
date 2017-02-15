@@ -76,7 +76,8 @@ class SCSCPPeer(object):
         """ Send SCSCP message """
         self._send_PI('start')
         try:
-            self.socket.send(msg)
+            self.log.debug(b'Sending message: %s' % msg)
+            self.socket.send(msg + b'\n')
         except:
             self._send_PI('cancel')
             raise
@@ -86,15 +87,14 @@ class SCSCPPeer(object):
     @_assert_connected
     def receive(self, timeout=-1):
         """ Receive SCSCP message """
-        msg = b""
         pi = self._get_next_PI(['start'], timeout=timeout)
-        while True:
-            pi = self._get_next_PI(['end', 'cancel'], timeout=timeout)
-            if pi.key == 'cancel':
-                raise SCSCPCancel('%s canceled transmission' % self.you)
-            
-            msg += self.stream.before
-            return msg
+        pi = self._get_next_PI(['end', 'cancel'], timeout=timeout)
+        if pi.key == 'cancel':
+            raise SCSCPCancel('%s canceled transmission' % self.you)
+
+        msg = self.stream.before
+        self.log.debug(b'Received message: %s' % msg)
+        return msg
 
     @_assert_connected
     def quit(self, reason=None):
