@@ -69,7 +69,7 @@ class SCSCPPeer(object):
     def _send_PI(self, key='', **kwds):
         pi = PI(key, **kwds)
         self.log.debug("Sending PI: %s" % pi)
-        return self.socket.send(bytes(pi))
+        return self.socket.send(bytes(pi) + b'\n')
 
     @_assert_connected
     def send(self, msg):
