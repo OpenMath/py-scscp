@@ -35,11 +35,11 @@ class TestConnInit(unittest.TestCase):
         self.client.send(b"Hello world!")
 
         msg = self.server.receive()
-        self.assertEqual(msg, b"Hello world!")
+        self.assertEqual(msg, b"\nHello world!\n")
         
         self.server.send(msg)
         msg = self.client.receive()
-        self.assertEqual(msg, b"Hello world!")
+        self.assertEqual(msg, b"\n\nHello world!\n\n")
 
         self.server.quit()
         self.assertEqual(self.server.status, client.CLOSED, "Quitted")
