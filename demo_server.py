@@ -27,7 +27,8 @@ class SCSCPRequestHandler(socketserver.BaseRequestHandler):
     def setup(self):
         self.server.log.info("New connection from %s:%d" % self.client_address)
         self.log = self.server.log.getChild(self.client_address[0])
-        self.scscp = SCSCPServer(self.request, logger=self.log)
+        self.scscp = SCSCPServer(self.request, self.server.name,
+                                     self.server.version, logger=self.log)
         
     def handle(self):
         self.scscp.accept()
@@ -96,9 +97,12 @@ class Server(socketserver.ThreadingMixIn, socketserver.TCPServer, object):
     allow_reuse_address = True
     
     def __init__(self, host='localhost', port=26133,
-                     logger=None, description='Demo SCSCP server'):
+                     logger=None, name=b'DemoServer', version=b'none',
+                     description='Demo SCSCP server'):
         super(Server, self).__init__((host, port), SCSCPRequestHandler)
         self.log = logger or logging.getLogger(__name__)
+        self.name = name
+        self.version = version
         self.description = description
         
 if __name__ == '__main__':

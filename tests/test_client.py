@@ -13,7 +13,7 @@ class TestClient(unittest.TestCase):
     def setUp(self):
         server, client = socket.socketpair()
         self.client = SCSCPClient(client)
-        self.server = SCSCPServerBase(server)
+        self.server = SCSCPServerBase(server, name=b'Test', version=b'none')
         t = Thread(target=self.server.accept)
         t.start()
         self.client.connect()

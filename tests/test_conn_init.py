@@ -1,6 +1,7 @@
 import unittest
 import socket
 from threading import Thread
+from collections import OrderedDict
 
 from scscp import client
 from scscp.client import SCSCPClientBase
@@ -10,7 +11,7 @@ class TestConnInit(unittest.TestCase):
     def setUp(self):
         server, client = socket.socketpair()
         self.client = SCSCPClientBase(client)
-        self.server = SCSCPServerBase(server)
+        self.server = SCSCPServerBase(server, name=b'Test', version=b'none', id=b'test-id')
 
     def test_successful(self):
         """ Test a successful connection initiation """
@@ -20,7 +21,13 @@ class TestConnInit(unittest.TestCase):
         t.join()
 
         self.assertEqual(self.client.status, client.CONNECTED, "Connected")
-        self.assertEqual(self.client.service_info, {'scscp_versions': b'1.3'}, "Connected")
+        self.assertEqual(OrderedDict(self.client.service_info.items()),
+                             OrderedDict([
+                                 ('service_name', b'Test'),
+                                 ('service_version', b'none'),
+                                 ('service_id', b'test-id'),
+                                 ('scscp_versions', b'1.3')
+                                 ]), "Connected")
         
         self.client.quit()
         self.assertEqual(self.client.status, client.CLOSED, "Quitted")

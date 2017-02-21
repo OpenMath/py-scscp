@@ -3,7 +3,7 @@ from pexpect import fdpexpect, TIMEOUT, EOF
 from openmath import encoder, decoder
 from . import scscp
 from .scscp import SCSCPConnectionError, SCSCPQuit, SCSCPCancel, SCSCPProcedureMessage
-from .processing_instruction import ProcessingInstruction as PI
+from .processing_instruction import ProcessingInstruction as PI, OrderedProcessingInstruction as OPI
 
 class TimeoutError(RuntimeError):
     """ Client/Server timeout """
@@ -68,6 +68,11 @@ class SCSCPPeer(object):
 
     def _send_PI(self, key='', **kwds):
         pi = PI(key, **kwds)
+        self.log.debug("Sending PI: %s" % pi)
+        return self.socket.send(bytes(pi) + b'\n')
+
+    def _send_ordered_PI(self, key, attrs):
+        pi = OPI(key, attrs)
         self.log.debug("Sending PI: %s" % pi)
         return self.socket.send(bytes(pi) + b'\n')
 
