@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='scscp',
-    version='0.1.0',
+    version='0.1.1',
     description='Implementation of the SCSCP protocol',
     url='https://github.com/OpenMath/py-scscp',
     author='Luca De Feo',
@@ -15,5 +15,5 @@ setup(
     ],
     keywords='openmath scscp',
     packages=find_packages(),
-    install_requires=['openmath', 'pexpect'],
+    install_requires=['openmath>=0.1.1', 'pexpect'],
 )
