@@ -9,10 +9,11 @@ class TestSCSCPCD(unittest.TestCase):
                                  OMSymbol('get_service_description', 'scscp2', id=None, cdbase=None),
                                  [], id=None, cdbase=None))
 
-        self.assertEqual(scscp.service_description('Hello', 'world'),
+        self.assertEqual(scscp.service_description('Hello', 'world', '!'),
                              OMApplication(
                                  OMSymbol('service_description', 'scscp2', id=None, cdbase=None),
-                                 [OMString('Hello', id=None), OMString('world', id=None)],
+                                 [OMString('Hello', id=None), OMString('world', id=None),
+                                      OMString('!', id=None)],
                                  id=None, cdbase=None))
 
     def test_procedure(self):

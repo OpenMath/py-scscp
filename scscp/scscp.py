@@ -182,8 +182,8 @@ def signature(name, cd, symbol_sets=None, min=None, max=None):
 def get_service_description():
     return _apply('get_service_description', [])
 
-def service_description(*desc):
-    return _apply('service_description', [om.OMString(d) for d in desc])
+def service_description(service, name, description):
+    return _apply('service_description', [om.OMString(d) for d in (service, name, description)])
 
 def no_such_transient_cd(cd):
     return om.OMError(om.OMSymbol('no_such_transient_cd', cd='scscp2'), [om.OMString(cd)])

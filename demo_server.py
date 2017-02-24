@@ -91,7 +91,9 @@ class SCSCPRequestHandler(socketserver.BaseRequestHandler):
                                     or head.cd == 'scscp1')
 
     def get_service_description(self, data):
-        return scscp.service_description(self.server.description)
+        return scscp.service_description(self.server.name.decode(),
+                                             self.server.version.decode(),
+                                             self.server.description)
 
 class Server(socketserver.ThreadingMixIn, socketserver.TCPServer, object):
     allow_reuse_address = True

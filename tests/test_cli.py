@@ -45,7 +45,7 @@ class TestCli(unittest.TestCase):
         self.assertEqual(client.status, 2)
 
     def test_description(self):
-        self.assertEqual(self.client.get_description(), "Demo SCSCP server")
+        self.assertEqual(self.client.get_description(), ["DemoServer", "none", "Demo SCSCP server"])
 
     def test_arith(self):
         cases = [

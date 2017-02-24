@@ -109,4 +109,4 @@ class SCSCPCLI(SCSCPClient):
         return self.heads.scscp2.is_allowed_head([om.OMSymbol(name, cd)])
     
     def get_description(self):
-        return '\n'.join(a.string for a in self.heads.scscp2.get_service_description([]).arguments)
+        return [a.string for a in self.heads.scscp2.get_service_description([]).arguments]
