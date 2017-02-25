@@ -38,10 +38,10 @@ SCSCP server may extend. Lower level classes are also available, for
 more details see the API docs.
 
 This source distribution also contains an example server
-``demo_server.py``, capable of performing very basic arithmetic
-operations. To run the demo server, simply run::
+``examples/demo_server.py``, capable of performing very basic
+arithmetic operations. To run the demo server, simply run::
   
-   python demo_server.py
+   python examples/demo_server.py
 
 
 Client

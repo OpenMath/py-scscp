@@ -3,7 +3,7 @@ import time, sys
 from threading import Thread
 
 from scscp.cli import SCSCPCLI
-from demo_server import Server
+from examples.demo_server import Server
 
 class TestCli(unittest.TestCase):
     def setUp(self):
@@ -22,10 +22,10 @@ class TestCli(unittest.TestCase):
     @unittest.skipIf((sys.version_info.major, sys.version_info.minor) < (3,4),
                      "assertLogs not supported in Python < 3.4")
     def test_info(self):
-        with self.assertLogs('demo_server', 'INFO') as log:
+        with self.assertLogs('examples.demo_server', 'INFO') as log:
             self.client.info(b'Hello world')
             time.sleep(0.1)
-        self.assertEqual(log.output, ['INFO:demo_server.127.0.0.1:SCSCP info: Hello world'])
+        self.assertEqual(log.output, ['INFO:examples.demo_server.127.0.0.1:SCSCP info: Hello world'])
 
     def test_populate(self):
         self.client.populate_heads()
