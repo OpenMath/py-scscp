@@ -1,8 +1,5 @@
 import socket
-try:
-    import socketserver
-except:
-    import SocketServer as socketserver
+from six.moves import socketserver
 import logging
 from openmath import openmath as om, convert as conv
 

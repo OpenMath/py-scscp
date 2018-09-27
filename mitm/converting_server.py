@@ -1,8 +1,5 @@
 import socket
-try:
-    import socketserver
-except:
-    import SocketServer as socketserver
+from six.moves import socketserver
 import logging
 
 from openmath.convert_pickle import PickleConverter as MitMConverter
