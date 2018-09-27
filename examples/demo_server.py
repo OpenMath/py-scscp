@@ -68,7 +68,7 @@ class SCSCPRequestHandler(socketserver.BaseRequestHandler):
                     om.OMSymbol('unhandled_symbol', cd='error'), [call.data.elem]))
 
             strlog = str(res)
-            self.log.debug('...sending result: %s' % (strlog[:20] + (len(strlog) > 20 and '...')))
+            self.log.debug('...sending result: %s' % (strlog[:20] + ('...' if len(strlog) > 20 else '')))
             return self.scscp.completed(call.id, res)
         except (AttributeError, IndexError, TypeError):
             self.log.debug('...client protocol error.')
