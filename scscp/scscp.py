@@ -17,6 +17,8 @@ class SCSCPProtocolError(SCSCPError):
     def __init__(self, msg, om=None):
         super(SCSCPProtocolError, self).__init__(msg)
         self.om = om
+class SCSCPUnknownHead(SCSCPError):
+    pass
 
 ### SCSCP1 content dictionary
 

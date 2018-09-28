@@ -1,15 +1,13 @@
-import socket
-from six.moves import socketserver
 import logging
+
+from six.moves import socketserver
+
 from openmath import openmath as om, convert as conv
 
-from scscp.client import TimeoutError, CONNECTED
-from scscp.server import SCSCPServer
-from scscp.scscp import SCSCPQuit, SCSCPProtocolError
 from scscp import scscp
+from scscp.socketserver import SCSCPServerRequestHandler, SCSCPSocketServer, CD_SCSCP2
 
 # Supported functions
-CD_SCSCP2 = ['get_service_description', 'get_allowed_heads', 'is_allowed_head']
 CD_ARITH1 = {
     'abs'         : abs,
     'unary_minus' : lambda x  : -x,
@@ -20,61 +18,13 @@ CD_ARITH1 = {
     'power'       : lambda x,y: x**y,
 }
 
-class SCSCPRequestHandler(socketserver.BaseRequestHandler):
-    def setup(self):
-        self.server.log.info("New connection from %s:%d" % self.client_address)
-        self.log = self.server.log.getChild(self.client_address[0])
-        self.scscp = SCSCPServer(self.request, self.server.name,
-                                     self.server.version, logger=self.log)
+class DemoServerRequestHandler(SCSCPServerRequestHandler):
+    def handle_call(self, call, head):
+        if call.data.elem.cd == 'arith1' and head in CD_ARITH1:
+            args = [conv.to_python(a) for a in call.data.arguments]
+            return conv.to_openmath(CD_ARITH1[head](*args))
         
-    def handle(self):
-        self.scscp.accept()
-        while True:
-            try:
-                call = self.scscp.wait()
-            except TimeoutError:
-                continue
-            except SCSCPQuit as e:
-                self.log.info(e)
-                break
-            except ConnectionResetError:
-                self.log.info('Client closed unexpectedly.')
-                break
-            except SCSCPProtocolError as e:
-                self.log.info('SCSCP protocol error: %s.' % str(e))
-                self.log.info('Closing connection.')
-                self.scscp.quit()
-                break
-            self.handle_call(call)
-
-    def handle_call(self, call):
-        if (call.type != 'procedure_call'):
-            raise SCSCPProtocolError('Bad message from client: %s.' % call.type, om=call.om())
-        try:
-            head = call.data.elem.name
-            self.log.debug('Requested head: %s...' % head)
-            
-            if call.data.elem.cd == 'scscp2' and head in CD_SCSCP2:
-                res = getattr(self, head)(call.data)
-            elif call.data.elem.cd == 'arith1' and head in CD_ARITH1:
-                args = [conv.to_python(a) for a in call.data.arguments]
-                res = conv.to_openmath(CD_ARITH1[head](*args))
-            else:
-                self.log.debug('...head unknown.')
-                return self.scscp.terminated(call.id, om.OMError(
-                    om.OMSymbol('unhandled_symbol', cd='error'), [call.data.elem]))
-
-            strlog = str(res)
-            self.log.debug('...sending result: %s' % (strlog[:20] + ('...' if len(strlog) > 20 else '')))
-            return self.scscp.completed(call.id, res)
-        except (AttributeError, IndexError, TypeError):
-            self.log.debug('...client protocol error.')
-            return self.scscp.terminated(call.id, om.OMError(
-                om.OMSymbol('unexpected_symbol', cd='error'), [call.data]))
-        except Exception as e:
-            self.log.exception('Unhandled exception:')
-            return self.scscp.terminated(call.id, 'system_specific',
-                                             'Unhandled exception %s.' % str(e))
+        return super(SCSCPRequestHandler, self).handle_call(call, head)
 
     def get_allowed_heads(self, data):
         return scscp.symbol_set([om.OMSymbol(head, cd='scscp2') for head in CD_SCSCP2]
@@ -92,17 +42,14 @@ class SCSCPRequestHandler(socketserver.BaseRequestHandler):
                                              self.server.version.decode(),
                                              self.server.description)
 
-class Server(socketserver.ThreadingMixIn, socketserver.TCPServer, object):
-    allow_reuse_address = True
-    
+class Server(SCSCPSocketServer):
     def __init__(self, host='localhost', port=26133,
                      logger=None, name=b'DemoServer', version=b'none',
                      description='Demo SCSCP server'):
-        super(Server, self).__init__((host, port), SCSCPRequestHandler)
-        self.log = logger or logging.getLogger(__name__)
-        self.name = name
-        self.version = version
-        self.description = description
+
+        super(Server, self).__init__(host=host, port=port, logger=logger or logging.getLogger(__name__), 
+            name=name, version=version, description=description, 
+            RequestHandlerClass=DemoServerRequestHandler)
         
 if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG)

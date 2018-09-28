@@ -1,7 +1,6 @@
 import logging
 from pexpect import fdpexpect, TIMEOUT, EOF
 from openmath import encoder, decoder
-from . import scscp
 from .scscp import SCSCPConnectionError, SCSCPQuit, SCSCPCancel, SCSCPProcedureMessage
 from .processing_instruction import ProcessingInstruction as PI, OrderedProcessingInstruction as OPI
 

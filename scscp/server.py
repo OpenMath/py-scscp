@@ -2,13 +2,15 @@ import uuid
 from .client import SCSCPPeer, SCSCPPeerOM, _assert_status, INITIALIZED, CONNECTED
 from .scscp import SCSCPConnectionError, SCSCPProcedureMessage
 
+
 class SCSCPServerBase(SCSCPPeer):
     """
     A simple SCSCP synchronous server, with no understanding of OpenMath.
     """
-    
+
     def __init__(self, socket, name, version, id=None, timeout=30, logger=None):
-        super(SCSCPServerBase, self).__init__(socket, timeout, logger, me="Server", you="Client")
+        super(SCSCPServerBase, self).__init__(
+            socket, timeout, logger, me="Server", you="Client")
         self._name = name
         self._version = version
         self._id = id or str(uuid.uuid1()).encode()
@@ -17,22 +19,23 @@ class SCSCPServerBase(SCSCPPeer):
     def accept(self, timeout=None):
         """ SCSCP handshake """
         self._send_ordered_PI('', [('service_name', self._name), ('service_version', self._version),
-                                       ('service_id', self._id), ('scscp_versions', b'1.3')])
-        
+                                   ('service_id', self._id), ('scscp_versions', b'1.3')])
+
         pi = self._get_next_PI([''], timeout=timeout)
         if pi.attrs.get('version') != b'1.3':
             self.quit()
             raise SCSCPConnectionError("Client sent unexpected response.", pi)
-        
+
         self._send_PI(version=b'1.3')
 
         self.status = CONNECTED
 
-        
+
 class SCSCPServer(SCSCPServerBase, SCSCPPeerOM):
     """
     A simple SCSCP synchronous server.
     """
+
     def wait(self, timeout=-1):
         return SCSCPProcedureMessage.from_om(self.receive(timeout))
 
