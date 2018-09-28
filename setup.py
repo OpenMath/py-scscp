@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='scscp',
-    version='0.1.1',
+    version='0.2.0',
     description='Implementation of the SCSCP protocol',
     url='https://github.com/OpenMath/py-scscp',
     author='Luca De Feo',
