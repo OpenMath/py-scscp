@@ -43,12 +43,6 @@ arithmetic operations. To run the demo server, simply run::
   
    python examples/demo_server.py
 
-It furthermore contains a slightly more advanced server used within 
-the OpenDreamKit project. To use it, run:
-
-    python mitm/converting_server.py
-
-
 Client
 ------
 

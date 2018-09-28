@@ -110,6 +110,8 @@ class SCSCPServerRequestHandler(socketserver.BaseRequestHandler):
 
 
 class SCSCPSocketServer(socketserver.ThreadingMixIn, socketserver.TCPServer, object):
+    """ An SCSCP Server based on sockets """
+
     allow_reuse_address = True
 
     def __init__(self, host=None, port=None,
