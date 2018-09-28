@@ -15,5 +15,5 @@ setup(
     ],
     keywords='openmath scscp',
     packages=find_packages(),
-    install_requires=['openmath>=0.1.1', 'pexpect'],
+    install_requires=['openmath>=0.3.0', 'pexpect', 'six'],
 )
