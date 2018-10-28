@@ -19,9 +19,9 @@ class SCSCPCLI(SCSCPClient):
             self.cd = cd
             self._cli = cli
             self._om = om.OMSymbol(name, cd=cd)
-        def __call__(self, data, cookie=False, **opts):
+        def __call__(self, data, cookie=False, timeout=-1, **opts):
             res = self._cli._call_wait(om.OMApplication(self._om, map(_conv_if_py, data)),
-                                           cookie, **opts)
+                                           cookie, timeout=timeout, **opts)
             if res.type == 'procedure_completed':
                 try:
                     return convert.to_python(res.data)
@@ -76,9 +76,9 @@ class SCSCPCLI(SCSCPClient):
         if populate:
             self.populate_heads()
 
-    def _call_wait(self, data, cookie=False, **opts):
+    def _call_wait(self, data, cookie=False, timeout=-1, **opts):
         call = self.call(data, cookie, **opts)
-        resp = self.wait()
+        resp = self.wait(timeout)
         
         if resp.id != call.id:
             raise scscp.SCSCPProtocolError("Wrong call id (expected %s, got %s)."
