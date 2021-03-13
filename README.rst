@@ -5,7 +5,7 @@ SCSCP
 |Build Status|
 
 `SCSCP 1.3
-<http://www.symbolic-computing.org/science/index.php/SCSCP>`__
+<https://www.openmath.org/standard/scscp/>`__
 implementation for Python.
 
 Description
